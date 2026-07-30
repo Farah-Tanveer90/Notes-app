@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Notes App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #eef1ea;
+    --paper-raised: #f7f8f3;
+    --ink: #1f2a24;
+    --ink-soft: #5b6b5f;
+    --line: #c7cdc0;
+    --storm: #3a6ea5;
+    --sun: #c9822f;
+    --error: #a53a3a;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:48px 20px;
+  }
+  .panel{
+    width:100%;
+    max-width:720px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+  }
+
+  header.masthead{
+    padding:20px 28px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  .masthead h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:22px;
+    margin:0;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  /* search */
+  .search-row{
+    padding:14px 28px;
+    border-bottom:1px solid var(--line);
+  }
+  .search-row input{
+    width:100%;
+    border:1px solid var(--line);
+    background:var(--paper);
+    padding:10px 12px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--ink);
+    outline:none;
+  }
+  .search-row input:focus-visible{ outline:2px solid var(--storm); outline-offset:-1px; }
+
+  /* new note form */
+  form#noteForm{
+    padding:20px 28px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field input, .field textarea{
+    width:100%;
+    border:1px solid var(--line);
+    background:var(--paper);
+    padding:10px 12px;
+    font-family:'Inter', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    outline:none;
+    resize:vertical;
+  }
+  .field textarea{ min-height:80px; }
+  .field input:focus-visible, .field textarea:focus-visible{ outline:2px solid var(--storm); outline-offset:-1px; }
+  .field.has-error input, .field.has-error textarea{ border-color:var(--error); }
+  .field-error{
+    display:none;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--error);
+    margin-top:4px;
+  }
+  .field.has-error .field-error{ display:block; }
+
+  .form-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+  }
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--ink);
+    padding:9px 16px;
+    transition:background 0.15s ease, border-color 0.15s ease;
+  }
+  button:hover{ background:var(--paper); }
+  button.primary{ border-color:var(--storm); color:var(--storm); }
+  button.primary:hover{ background:var(--storm); color:var(--paper-raised); }
+  button.ghost{ border-color:transparent; color:var(--ink-soft); }
+  button:focus-visible{ outline:2px solid var(--storm); outline-offset:1px; }
+
+  /* notes list */
+  .notes-list{ padding:8px 0; }
+  .empty-state{
+    padding:40px 28px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+  .note-card{
+    padding:18px 28px;
+    border-bottom:1px solid var(--line);
+  }
+  .note-card:last-child{ border-bottom:none; }
+  .note-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:12px;
+    margin-bottom:6px;
+  }
+  .note-title{
+    font-family:'Fraunces', serif;
+    font-size:17px;
+    font-weight:500;
+    word-break:break-word;
+  }
+  .note-meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .note-content{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink);
+    white-space:pre-wrap;
+    word-break:break-word;
+    margin-bottom:10px;
+  }
+  .note-actions{
+    display:flex;
+    gap:8px;
+  }
+  .note-actions button{ padding:6px 12px; }
+  button.danger{ border-color:var(--error); color:var(--error); }
+  button.danger:hover{ background:var(--error); color:var(--paper-raised); }
+
+  /* edit mode reuses field styles */
+  .note-card.editing .note-content, .note-card.editing .note-title{ display:none; }
+  .edit-fields{ display:none; flex-direction:column; gap:10px; margin-bottom:10px; }
+  .note-card.editing .edit-fields{ display:flex; }
+
+  footer.foot{
+    padding:12px 28px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">Notes Ledger</div>
+      <h1>Your Notes</h1>
+    </div>
+    <div class="eyebrow" id="countLabel">0 entries</div>
+  </header>
+
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="Search by title or content…" autocomplete="off">
+  </div>
+
+  <form id="noteForm" novalidate>
+    <div class="field" id="titleField">
+      <label for="titleInput">Title</label>
+      <input type="text" id="titleInput" autocomplete="off">
+      <div class="field-error" id="titleError">Title can't be empty.</div>
+    </div>
+    <div class="field" id="contentField">
+      <label for="contentInput">Content</label>
+      <textarea id="contentInput"></textarea>
+      <div class="field-error" id="contentError">Content can't be empty.</div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="primary">Add note</button>
+    </div>
+  </form>
+
+  <div class="notes-list" id="notesList"></div>
+
+  <footer class="foot">Stored locally in this browser</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'notes-ledger:entries';
+
+// ---------- storage ----------
+function loadNotes(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(err){
+    console.error('Failed to read notes from storage', err);
+    return [];
+  }
+}
+
+function saveNotes(notes){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  }catch(err){
+    console.error('Failed to save notes', err);
+  }
+}
+
+let notes = loadNotes();
+
+// ---------- helpers ----------
+function makeId(){
+  return 'n_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function formatTimestamp(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{month:'short', day:'numeric'}) + ' · ' +
+    d.toLocaleTimeString(undefined,{hour:'2-digit', minute:'2-digit'});
+}
+
+function escapeHTML(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---------- validation ----------
+function validateField(fieldEl, errorEl, value, message){
+  const trimmed = value.trim();
+  if(trimmed === ''){
+    fieldEl.classList.add('has-error');
+    errorEl.textContent = message;
+    return false;
+  }
+  fieldEl.classList.remove('has-error');
+  return true;
+}
+
+// ---------- render ----------
+function render(){
+  const list = document.getElementById('notesList');
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+
+  const visible = notes
+    .filter(n => !query || n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query))
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+  document.getElementById('countLabel').textContent =
+    `${notes.length} ${notes.length === 1 ? 'entry' : 'entries'}`;
+
+  list.innerHTML = '';
+
+  if(notes.length === 0){
+    list.innerHTML = `<div class="empty-state">No notes yet — add your first one above.</div>`;
+    return;
+  }
+  if(visible.length === 0){
+    list.innerHTML = `<div class="empty-state">No notes match "${escapeHTML(query)}".</div>`;
+    return;
+  }
+
+  visible.forEach(note => {
+    const card = document.createElement('div');
+    card.className = 'note-card';
+    card.dataset.id = note.id;
+    card.innerHTML = `
+      <div class="note-head">
+        <div class="note-title">${escapeHTML(note.title)}</div>
+        <div class="note-meta">Edited ${formatTimestamp(note.updatedAt)}</div>
+      </div>
+      <div class="note-content">${escapeHTML(note.content)}</div>
+
+      <div class="edit-fields">
+        <div class="field" data-role="edit-title-field">
+          <label>Title</label>
+          <input type="text" class="edit-title" value="${escapeHTML(note.title)}">
+          <div class="field-error">Title can't be empty.</div>
+        </div>
+        <div class="field" data-role="edit-content-field">
+          <label>Content</label>
+          <textarea class="edit-content">${escapeHTML(note.content)}</textarea>
+          <div class="field-error">Content can't be empty.</div>
+        </div>
+      </div>
+
+      <div class="note-actions">
+        <button type="button" class="edit-btn">Edit</button>
+        <button type="button" class="save-btn" style="display:none">Save</button>
+        <button type="button" class="cancel-btn ghost" style="display:none">Cancel</button>
+        <button type="button" class="danger delete-btn">Delete</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ---------- add note ----------
+document.getElementById('noteForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const titleInput = document.getElementById('titleInput');
+  const contentInput = document.getElementById('contentInput');
+  const titleField = document.getElementById('titleField');
+  const contentField = document.getElementById('contentField');
+  const titleError = document.getElementById('titleError');
+  const contentError = document.getElementById('contentError');
+
+  const titleOk = validateField(titleField, titleError, titleInput.value, "Title can't be empty.");
+  const contentOk = validateField(contentField, contentError, contentInput.value, "Content can't be empty.");
+  if(!titleOk || !contentOk) return;
+
+  const now = new Date().toISOString();
+  notes.push({
+    id: makeId(),
+    title: titleInput.value.trim(),
+    content: contentInput.value.trim(),
+    updatedAt: now,
+    createdAt: now
+  });
+  saveNotes(notes);
+
+  titleInput.value = '';
+  contentInput.value = '';
+  titleField.classList.remove('has-error');
+  contentField.classList.remove('has-error');
+
+  render();
+});
+
+// clear inline error as soon as user starts fixing it
+['titleInput','contentInput'].forEach(id => {
+  document.getElementById(id).addEventListener('input', (e) => {
+    e.target.closest('.field').classList.remove('has-error');
+  });
+});
+
+// ---------- search ----------
+document.getElementById('searchInput').addEventListener('input', render);
+
+// ---------- edit / save / cancel / delete (event delegation) ----------
+document.getElementById('notesList').addEventListener('click', (e) => {
+  const card = e.target.closest('.note-card');
+  if(!card) return;
+  const id = card.dataset.id;
+
+  if(e.target.classList.contains('edit-btn')){
+    card.classList.add('editing');
+    card.querySelector('.edit-btn').style.display = 'none';
+    card.querySelector('.save-btn').style.display = '';
+    card.querySelector('.cancel-btn').style.display = '';
+  }
+
+  else if(e.target.classList.contains('cancel-btn')){
+    card.classList.remove('editing');
+    card.querySelector('.edit-btn').style.display = '';
+    card.querySelector('.save-btn').style.display = 'none';
+    card.querySelector('.cancel-btn').style.display = 'none';
+    // reset edit fields to stored values
+    const note = notes.find(n => n.id === id);
+    card.querySelector('.edit-title').value = note.title;
+    card.querySelector('.edit-content').value = note.content;
+    card.querySelector('[data-role="edit-title-field"]').classList.remove('has-error');
+    card.querySelector('[data-role="edit-content-field"]').classList.remove('has-error');
+  }
+
+  else if(e.target.classList.contains('save-btn')){
+    const titleField = card.querySelector('[data-role="edit-title-field"]');
+    const contentField = card.querySelector('[data-role="edit-content-field"]');
+    const titleVal = card.querySelector('.edit-title').value;
+    const contentVal = card.querySelector('.edit-content').value;
+
+    const titleOk = validateField(titleField, titleField.querySelector('.field-error'), titleVal, "Title can't be empty.");
+    const contentOk = validateField(contentField, contentField.querySelector('.field-error'), contentVal, "Content can't be empty.");
+    if(!titleOk || !contentOk) return;
+
+    const note = notes.find(n => n.id === id);
+    note.title = titleVal.trim();
+    note.content = contentVal.trim();
+    note.updatedAt = new Date().toISOString();
+    saveNotes(notes);
+    render();
+  }
+
+  else if(e.target.classList.contains('delete-btn')){
+    notes = notes.filter(n => n.id !== id);
+    saveNotes(notes);
+    render();
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
